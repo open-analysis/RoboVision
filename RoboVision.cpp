@@ -1,15 +1,12 @@
-/*
- * File:          e-puck_controller.c
- * Date:
- * Description:
- * Author:	Josh Chica
- * Modifications:
- */
-int i = 0;
-/*
- * You may need to add include files like <webots/distance_sensor.h> or
- * <webots/differential_wheels.h>, etc.
- */
+// File:          RoboVision.cpp
+// Date:
+// Description:
+// Author:
+// Modifications:
+
+// You may need to add webots include files such as
+// <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
+// and/or to add some other includes
 
 #include <webots/Robot.hpp>
 #include <webots/DistanceSensor.hpp>
@@ -23,6 +20,7 @@ int i = 0;
 #define TIME_STEP 64
 #define MAX_SPEED 6.28
 
+// All the webots classes are defined in the "webots" namespace
 using namespace webots;
 
 /*
@@ -119,4 +117,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-

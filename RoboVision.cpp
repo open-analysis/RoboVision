@@ -1,7 +1,7 @@
 // File:          RoboVision.cpp
 // Date:
 // Description:
-// Author:
+// Author:	Josh Chica
 // Modifications:
 
 // You may need to add webots include files such as
@@ -11,7 +11,8 @@
 #include <webots/Robot.hpp>
 #include <webots/DistanceSensor.hpp>
 #include <webots/Camera.hpp>
-#include<webots/Motor.hpp>
+#include <webots/Motor.hpp>
+#include <opencv2/opencv.hpp>
 
 
  /*

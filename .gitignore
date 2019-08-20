@@ -91,6 +91,7 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+*.sln
 
 # Chutzpah Test files
 _Chutzpah*
@@ -347,5 +348,4 @@ healthchecksdb
 
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
-RoboVision.exe
 *.png

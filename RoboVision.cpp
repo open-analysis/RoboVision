@@ -8,6 +8,8 @@
 // <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
 // and/or to add some other includes
 
+#include <stdio.h>
+#include <ctime>
 #include <webots/Robot.hpp>
 #include <webots/DistanceSensor.hpp>
 #include <webots/Camera.hpp>
@@ -23,6 +25,10 @@
 
 // All the webots classes are defined in the "webots" namespace
 using namespace webots;
+using namespace cv;
+
+void EdgeDetect();
+void EdgeDetectWithWindow();
 
 /*
  * This is the main program.
@@ -60,10 +66,14 @@ int main(int argc, char **argv)
 	leftMotor->setVelocity(0.0);
 	rightMotor->setVelocity(0.0);
 
+	clock_t pastTime = clock();
+	double secondsPassed;
 	/* main loop
 	 * Perform simulation steps of TIME_STEP milliseconds
 	 * and leave the loop when the simulation is over
 	 */
+	printf("Everything's loaded, about to move\n");
+
 	while (robot->step(TIME_STEP) != -1) {
 
 		/*
@@ -76,7 +86,7 @@ int main(int argc, char **argv)
 			psValues[i] = ps[i]->getValue();
 
 		const unsigned char *image = camera->getImage();
-		unsigned char greyImage = camera->imageGetGray(image, camera->getWidth(), 0, 0);
+		//unsigned char greyImage = camera->imageGetGray(image, camera->getWidth(), 0, 0);
 
 		/* Process sensor data here */
 
@@ -109,6 +119,16 @@ int main(int argc, char **argv)
 		leftMotor->setVelocity(leftSpeed);
 		rightMotor->setVelocity(rightSpeed);
 
+		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
+		if (secondsPassed >= 3) {
+			if (camera->saveImage("image.png", 100) == 0);
+			else {
+				printf("couldn't save image\n");
+				continue;
+			}
+			EdgeDetect();
+			pastTime = clock();
+		}
 	};
 
 	/* Enter your cleanup code here */
@@ -117,4 +137,65 @@ int main(int argc, char **argv)
 	delete robot;
 
 	return 0;
+}
+
+
+void EdgeDetect(){
+
+	printf("Detecting Edges\n");
+
+	Mat src, src_gray;
+	Mat dst, detected_edges;
+
+	int lowThreshold = 0;
+	const int max_lowThreshold = 100;
+	const int ratio = 3;
+	const int kernel_size = 3;
+
+	src = imread("image.png", IMREAD_COLOR);
+	if (src.empty()) {
+		printf("image doesn't exist\n");
+		return;
+	}
+	dst.create(src.size(), src.type());
+
+	// possible get rid of this if I just grab the grey image from the bot itself
+	cvtColor(src, src_gray, COLOR_BGR2GRAY);
+
+	blur(src_gray, detected_edges, Size(3, 3));
+	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
+	dst = Scalar::all(0);
+	src.copyTo(dst, detected_edges);
+
+	printf("Done detecting\n");
+}
+
+void EdgeDetectWithWindow(){
+	
+	printf("Edge Detect with Window\n");
+
+	Mat src, src_gray;
+	Mat dst, detected_edges;
+	int lowThreshold = 0;
+	const int max_lowThreshold = 100;
+	const int ratio = 3;
+	const int kernel_size = 3;
+	const char* window_name = "Edge Map";
+
+	src = imread("image.png", IMREAD_COLOR);
+	if (src.empty()) {
+		printf("image doesn't exist\n");
+		return;
+	}
+	dst.create(src.size(), src.type());
+	cvtColor(src, src_gray, COLOR_BGR2GRAY);
+	namedWindow(window_name, WINDOW_AUTOSIZE);
+	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, NULL);
+
+	blur(src_gray, detected_edges, Size(3, 3));
+	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
+	dst = Scalar::all(0);
+	src.copyTo(dst, detected_edges);
+	imshow(window_name, dst);
+
 }

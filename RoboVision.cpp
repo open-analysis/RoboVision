@@ -1,12 +1,9 @@
-// File:          RoboVision.cpp
-// Date:
-// Description:
-// Author:	Josh Chica
-// Modifications:
+// File:			RoboVision.cpp
+// Date:			9/10/19
+// Description:		Program will allow an e-puck robot to "see" its environment to guide itself through it (eg navigating a cave or tunnel).
+// Author:			Josh Chica
+// Modifications:	Many
 
-// You may need to add webots include files such as
-// <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
-// and/or to add some other includes
 
 #include <stdio.h>
 #include <ctime>
@@ -16,35 +13,45 @@
 #include <webots/Motor.hpp>
 #include <opencv2/opencv.hpp>
 
+// toggle debugging opencv
+#define TESTOPENCV true
 
- /*
-  * You may want to add macros here.
-  */
+// Macros
 #define TIME_STEP 64
 #define MAX_SPEED 6.28
 
-// All the webots classes are defined in the "webots" namespace
+// namespaces
 using namespace webots;
 using namespace cv;
 
+// forward declare OpenCV functions
 void EdgeDetect();
 void EdgeDetectWithWindow();
+//static void CannyEdgeDetect(Mat &src, Mat &src_gray, Mat &dst, Mat &detected_edges, int &lowThreshold, const int &ratio, const int &kernel_size, const char* &window_name);
+static void CannyEdgeDetect(int , void*);
 
-/*
- * This is the main program.
- * The arguments of the main function can be specified by the
- * "controllerArgs" field of the Robot node
- */
+// debug opencv global var declarations
+#if TESTOPENCV
+	Mat src, src_gray;
+	Mat dst, detected_edges;
+	int lowThreshold = 0;
+	const int max_lowThreshold = 100;
+	const int ratio = 3;
+	const int kernel_size = 3;
+	const char* window_name = "Edge Map";
+#endif
+
+// main
 int main(int argc, char **argv)
 {
 	/* necessary to initialize webots stuff */
 	Robot *robot = new Robot();
 
 	/*
-   * You should declare here WbDeviceTag variables for storing
-   * robot devices like this:
-   *  WbDeviceTag my_sensor = wb_robot_get_device("my_sensor");
-   *  WbDeviceTag my_actuator = wb_robot_get_device("my_actuator");
+   * Declaring Distance sensor 
+   * Declaring Camera
+   * Declaring Left+Right Motors
+   * Declaring clock_t 
    */
 	DistanceSensor *ps[8];
 	char psNames[8][4] = { "ps0", "ps1", "ps2", "ps3", "ps4", "ps5", "ps6", "ps7" };
@@ -76,20 +83,23 @@ int main(int argc, char **argv)
 
 	while (robot->step(TIME_STEP) != -1) {
 
-		/*
-		 * Read the sensors :
-		 * Enter here functions to read sensor data, like:
-		 *  double val = wb_distance_sensor_get_value(my_sensor);
-		 */
+		/* Read the sensors */
+
+		// read in distance sensors
 		double psValues[8];
 		for (int i = 0; i < 8; i++)
 			psValues[i] = ps[i]->getValue();
 
+		// taking a picture with camera
 		const unsigned char *image = camera->getImage();
 		//unsigned char greyImage = camera->imageGetGray(image, camera->getWidth(), 0, 0);
 
 		/* Process sensor data here */
 
+		/*
+		* Determines if the robot should turn
+		* checks if the distance sensors detect anything close by
+		*/
 		bool right_obstacle =
 			psValues[0] > 70.0 ||
 			psValues[1] > 70.0 ||
@@ -99,14 +109,16 @@ int main(int argc, char **argv)
 			psValues[6] > 70.0 ||
 			psValues[7] > 70.0;
 
-		/*
-		 * Enter here functions to send actuator commands, like:
-		 * wb_differential_wheels_set_speed(100.0,100.0);
-		 */
+
+		/* Actuator commands here */
+
+		// setting the speed that will be assigned to the motors
 		double leftSpeed = .5 * MAX_SPEED;
 		double rightSpeed = .5 * MAX_SPEED;
 
+		// determines if the robot should turn because something's too close
 		if (left_obstacle) {
+			// turn right
 			leftSpeed += 0.5 * MAX_SPEED;
 			rightSpeed -= 0.5 * MAX_SPEED;
 		}
@@ -115,10 +127,12 @@ int main(int argc, char **argv)
 			leftSpeed -= 0.5 * MAX_SPEED;
 			rightSpeed += 0.5 * MAX_SPEED;
 		}
-		// write actuators inputs
+
+		// actually setting the motors' velocities based on the above data
 		leftMotor->setVelocity(leftSpeed);
 		rightMotor->setVelocity(rightSpeed);
 
+		// determing how much time has passed & if it should process the image
 		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
 		if (secondsPassed >= 3) {
 			if (camera->saveImage("image.png", 100) == 0);
@@ -126,7 +140,13 @@ int main(int argc, char **argv)
 				printf("couldn't save image\n");
 				continue;
 			}
+
+// opencv debugging
+#if TESTOPENCV
+			EdgeDetectWithWindow();
+#else
 			EdgeDetect();
+#endif
 			pastTime = clock();
 		}
 	};
@@ -139,7 +159,14 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-
+#if !TESTOPENCV
+/*
+	Function:	EdgeDetect
+	Parameters: None
+	Outputs:	None
+	Purpose:	Processes the image taken by the camera to find the edges in the image
+	Notes:		None
+*/
 void EdgeDetect(){
 
 	printf("Detecting Edges\n");
@@ -150,7 +177,7 @@ void EdgeDetect(){
 	int lowThreshold = 0;
 	const int max_lowThreshold = 100;
 	const int ratio = 3;
-	const int kernel_size = 3;
+	const int kernel_size = 3; 
 
 	src = imread("image.png", IMREAD_COLOR);
 	if (src.empty()) {
@@ -170,17 +197,17 @@ void EdgeDetect(){
 	printf("Done detecting\n");
 }
 
+#else
+/*
+	Function:	EdgeDetect
+	Parameters: None
+	Outputs:	None
+	Purpose:	Processes the image taken by the camera to find the edges in the image 
+	Notes:		To be used in conjunction with CannyEdgeDetect
+*/
 void EdgeDetectWithWindow(){
 	
 	printf("Edge Detect with Window\n");
-
-	Mat src, src_gray;
-	Mat dst, detected_edges;
-	int lowThreshold = 0;
-	const int max_lowThreshold = 100;
-	const int ratio = 3;
-	const int kernel_size = 3;
-	const char* window_name = "Edge Map";
 
 	src = imread("image.png", IMREAD_COLOR);
 	if (src.empty()) {
@@ -190,12 +217,29 @@ void EdgeDetectWithWindow(){
 	dst.create(src.size(), src.type());
 	cvtColor(src, src_gray, COLOR_BGR2GRAY);
 	namedWindow(window_name, WINDOW_AUTOSIZE);
-	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, NULL);
+	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyEdgeDetect);
 
+	CannyEdgeDetect(0, 0);
+
+	/*blur(src_gray, detected_edges, Size(3, 3));
+	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
+	dst = Scalar::all(0);
+	src.copyTo(dst, detected_edges);
+	imshow(window_name, dst); */
+
+}
+
+/*
+	Function:	EdgeDetect
+	Parameters: None
+	Outputs:	None
+	Purpose:	Processes the image taken by the camera to find the edges in the image
+*/
+static void CannyEdgeDetect(int, void*) {
 	blur(src_gray, detected_edges, Size(3, 3));
 	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
 	dst = Scalar::all(0);
 	src.copyTo(dst, detected_edges);
 	imshow(window_name, dst);
-
 }
+#endif

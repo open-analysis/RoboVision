@@ -129,8 +129,8 @@ int main(int argc, char **argv)
 		}
 
 		// actually setting the motors' velocities based on the above data
-		leftMotor->setVelocity(leftSpeed);
-		rightMotor->setVelocity(rightSpeed);
+		//leftMotor->setVelocity(leftSpeed);
+		//rightMotor->setVelocity(rightSpeed);
 
 		// determing how much time has passed & if it should process the image
 		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
@@ -141,12 +141,22 @@ int main(int argc, char **argv)
 				continue;
 			}
 
+			// declaring variable to assign to the see how long the function takes
+			// before clock so it's not part of the count
+			double functionTime = 0.0;
+			// starting clock to see how long it takes EdgeDetect to run
+			clock_t timeCount = clock();
 // opencv debugging
 #if TESTOPENCV
 			EdgeDetectWithWindow();
 #else
 			EdgeDetect();
 #endif
+			// Time elapsed during edge detect
+			//functionTime = (clock() - timeCount) / CLOCKS_PER_SEC;
+			//printf("%.20f\n", functionTime);
+			
+			// reset camera clock
 			pastTime = clock();
 		}
 	};
@@ -165,17 +175,18 @@ int main(int argc, char **argv)
 	Parameters: None
 	Outputs:	None
 	Purpose:	Processes the image taken by the camera to find the edges in the image
-	Notes:		To be used in the final version (ie not debug)
+	Notes:		To be used in the final version (ie not debug) && extra datatypes commented out/removed to save space for data
 */
 void EdgeDetect(){
 
 	printf("Detecting Edges\n");
 
-	Mat src, src_gray;
-	Mat dst, detected_edges;
+	//Mat src, src_gray;
+	//Mat dst, detected_edges;
+	Mat src;
 
 	int lowThreshold = 30;
-	const int max_lowThreshold = 100;
+	//const int max_lowThreshold = 100;
 	const int ratio = 3;
 	const int kernel_size = 3; 
 
@@ -184,15 +195,19 @@ void EdgeDetect(){
 		printf("image doesn't exist\n");
 		return;
 	}
-	dst.create(src.size(), src.type());
+	//dst.create(src.size(), src.type());
 
 	// possible get rid of this if I just grab the grey image from the bot itself
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
+	cvtColor(src, src, COLOR_BGR2GRAY);
 
-	blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
+	blur(src, src, Size(3, 3));
+	Canny(src, src, lowThreshold, lowThreshold*ratio, kernel_size);
+	//dst = Scalar::all(0);
+	//src.copyTo(dst, src);
+
+	// save image again so that it can be run through a NN
+	// commented out bc it's not necessary atm
+	imwrite("lines.png", src);
 
 	printf("Done detecting\n");
 }

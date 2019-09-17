@@ -14,7 +14,7 @@
 #include <opencv2/opencv.hpp>
 
 // toggle debugging opencv
-#define TESTOPENCV true
+#define TESTOPENCV false
 
 // Macros
 #define TIME_STEP 64
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 	Parameters: None
 	Outputs:	None
 	Purpose:	Processes the image taken by the camera to find the edges in the image
-	Notes:		None
+	Notes:		To be used in the final version (ie not debug)
 */
 void EdgeDetect(){
 
@@ -174,7 +174,7 @@ void EdgeDetect(){
 	Mat src, src_gray;
 	Mat dst, detected_edges;
 
-	int lowThreshold = 0;
+	int lowThreshold = 30;
 	const int max_lowThreshold = 100;
 	const int ratio = 3;
 	const int kernel_size = 3; 
@@ -203,7 +203,7 @@ void EdgeDetect(){
 	Parameters: None
 	Outputs:	None
 	Purpose:	Processes the image taken by the camera to find the edges in the image 
-	Notes:		To be used in conjunction with CannyEdgeDetect
+	Notes:		To be used in conjunction with CannyEdgeDetect && DEBUG VERSION
 */
 void EdgeDetectWithWindow(){
 	

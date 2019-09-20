@@ -22,11 +22,8 @@
 using namespace webots;
 using namespace cv;
 
-// forward declare OpenCV functions
+// forward declare OpenCV function
 void EdgeDetect();
-void EdgeDetectWithWindow();
-//static void CannyEdgeDetect(Mat &src, Mat &src_gray, Mat &dst, Mat &detected_edges, int &lowThreshold, const int &ratio, const int &kernel_size, const char* &window_name);
-static void CannyEdgeDetect(int , void*);
 
 
 // main

@@ -27,7 +27,7 @@ using namespace webots;
 using namespace cv;
 
 // forward declare OpenCV functions
-void ColorDetect();
+int ColorDetect();
 
 
 // main
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 	Purpose:	Processes the image taken by the camera to find the colors in the image
 	Notes:		To be used in the final version (ie not debug)
 */
-void ColorDetect(){
+int ColorDetect(){
 
 	printf("Detecting Colors\n");
 
@@ -162,14 +162,15 @@ void ColorDetect(){
 	imgOriginal = imread("image.png", IMREAD_COLOR);
 	if (imgOriginal.empty()) {
 		printf("image doesn't exist\n");
-		return;
+		return -1;
 	}
 	
 	// setting the threshold values to see color
-	int iLowH = 0;
+	// values determined by trial & error
+	int iLowH = 150;
 	int iHighH = 179;
 
-	int iLowS = 0;
+	int iLowS = 115;
 	int iHighS = 255;
 
 	int iLowV = 0;
@@ -197,4 +198,5 @@ void ColorDetect(){
 	imwrite("colors.png", imgThresholded);
 
 	printf("Done detecting\n");
+	return 0;
 }

@@ -1,8 +1,11 @@
-// File:			RoboVision.cpp
-// Date:			9/10/19
-// Description:		Program will allow an e-puck robot to "see" its environment to guide itself through it (eg navigating a cave or tunnel).
-// Author:			Josh Chica
-// Modifications:	Many
+/*
+	File:			RoboVision.cpp
+	Date:			9/10/19
+	Description:		Program will allow an e-puck robot to "see" its environment to guide itself through it (eg navigating a cave or tunnel). 
+						At the moment the goal is to "see" colors.
+	Author:			Josh Chica
+	Modifications:	Many
+*/
 
 
 #include <stdio.h>
@@ -13,8 +16,7 @@
 #include <webots/Motor.hpp>
 #include <opencv2/opencv.hpp>
 
-// toggle debugging opencv
-#define TESTOPENCV false
+
 
 // Macros
 #define TIME_STEP 64
@@ -25,21 +27,8 @@ using namespace webots;
 using namespace cv;
 
 // forward declare OpenCV functions
-void EdgeDetect();
-void EdgeDetectWithWindow();
-//static void CannyEdgeDetect(Mat &src, Mat &src_gray, Mat &dst, Mat &detected_edges, int &lowThreshold, const int &ratio, const int &kernel_size, const char* &window_name);
-static void CannyEdgeDetect(int , void*);
+void ColorDetect();
 
-// debug opencv global var declarations
-#if TESTOPENCV
-	Mat src, src_gray;
-	Mat dst, detected_edges;
-	int lowThreshold = 0;
-	const int max_lowThreshold = 100;
-	const int ratio = 3;
-	const int kernel_size = 3;
-	const char* window_name = "Edge Map";
-#endif
 
 // main
 int main(int argc, char **argv)
@@ -129,8 +118,9 @@ int main(int argc, char **argv)
 		}
 
 		// actually setting the motors' velocities based on the above data
-		leftMotor->setVelocity(leftSpeed);
-		rightMotor->setVelocity(rightSpeed);
+		// set the motor speeds to leftSpeed & rightSpeed respectively when done testing
+		leftMotor->setVelocity(0);
+		rightMotor->setVelocity(0);
 
 		// determing how much time has passed & if it should process the image
 		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
@@ -141,12 +131,7 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-// opencv debugging
-#if TESTOPENCV
-			EdgeDetectWithWindow();
-#else
-			EdgeDetect();
-#endif
+			ColorDetect();
 			pastTime = clock();
 		}
 	};
@@ -159,87 +144,57 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-#if !TESTOPENCV
 /*
-	Function:	EdgeDetect
+	Function:	ColorDetect
 	Parameters: None
 	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image
+	Purpose:	Processes the image taken by the camera to find the colors in the image
 	Notes:		To be used in the final version (ie not debug)
 */
-void EdgeDetect(){
+void ColorDetect(){
 
-	printf("Detecting Edges\n");
+	printf("Detecting Colors\n");
 
-	Mat src, src_gray;
-	Mat dst, detected_edges;
+	// declaring the matrices for OpenCV to use
+	Mat imgOriginal, imgHSV, imgThresholded;
 
-	int lowThreshold = 30;
-	const int max_lowThreshold = 100;
-	const int ratio = 3;
-	const int kernel_size = 3; 
-
-	src = imread("image.png", IMREAD_COLOR);
-	if (src.empty()) {
+	// loading in the image that was saved from the camera
+	imgOriginal = imread("image.png", IMREAD_COLOR);
+	if (imgOriginal.empty()) {
 		printf("image doesn't exist\n");
 		return;
 	}
-	dst.create(src.size(), src.type());
+	
+	// setting the threshold values to see color
+	int iLowH = 0;
+	int iHighH = 179;
 
-	// possible get rid of this if I just grab the grey image from the bot itself
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
+	int iLowS = 0;
+	int iHighS = 255;
 
-	blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
+	int iLowV = 0;
+	int iHighV = 255;
+
+	// converts the image from BGR (blue, green, red) format to HSV (hue, saturation, value)
+	cvtColor(imgOriginal, imgHSV, COLOR_RGB2HSV); //Convert the captured frame from BGR to HSV
+
+	// makes any pixel that isn't in the range set from the threshold values black
+	inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+
+	/*
+		the next four function calls are all getting rid of the little things that might mess with the color detection
+		and making it look more neat overall.
+	*/
+	//morphological opening (remove small objects from the foreground)
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	//morphological closing (fill small holes in the foreground)
+	dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+	erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+	// saving the image 
+	imwrite("colors.png", imgThresholded);
 
 	printf("Done detecting\n");
 }
-
-#else
-/*
-	Function:	EdgeDetect
-	Parameters: None
-	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image 
-	Notes:		To be used in conjunction with CannyEdgeDetect && DEBUG VERSION
-*/
-void EdgeDetectWithWindow(){
-	
-	printf("Edge Detect with Window\n");
-
-	src = imread("image.png", IMREAD_COLOR);
-	if (src.empty()) {
-		printf("image doesn't exist\n");
-		return;
-	}
-	dst.create(src.size(), src.type());
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
-	namedWindow(window_name, WINDOW_AUTOSIZE);
-	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyEdgeDetect);
-
-	CannyEdgeDetect(0, 0);
-
-	/*blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
-	imshow(window_name, dst); */
-
-}
-
-/*
-	Function:	EdgeDetect
-	Parameters: None
-	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image
-*/
-static void CannyEdgeDetect(int, void*) {
-	blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
-	imshow(window_name, dst);
-}
-#endif

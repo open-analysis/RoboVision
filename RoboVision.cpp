@@ -21,9 +21,6 @@
 using namespace webots;
 using namespace cv;
 
-// forward declare OpenCV function
-void EdgeDetect();
-
 // main
 int main(int argc, char **argv)
 {
@@ -118,18 +115,15 @@ int main(int argc, char **argv)
 		// determing how much time has passed & if it should process the image
 		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
 		if (secondsPassed >= 3) {
-			if (camera->saveImage("image.png", 100) == 0);
-			else {
-				printf("couldn't save image\n");
-				continue;
-			}
-
-			// start detecting edges on the saved image
-			EdgeDetect();
-
-			pastTime = clock();
+			// setting the motors' velocities to 0 & breaking out of the loop
+			leftMotor->setVelocity(0);
+			rightMotor->setVelocity(0);
+			break;
 		}
-	};
+		else {
+				continue;
+		}
+	}
 
 	/* Enter your cleanup code here */
 
@@ -137,41 +131,4 @@ int main(int argc, char **argv)
 	delete robot;
 
 	return 0;
-}
-
-/*
-	Function:	EdgeDetect
-	Parameters: None
-	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image
-	Notes:		To be used in the final version (ie not debug)
-*/
-void EdgeDetect(){
-
-	printf("Detecting Edges\n");
-
-	Mat src, src_gray;
-	Mat dst, detected_edges;
-
-	int lowThreshold = 30;
-	const int max_lowThreshold = 100;
-	const int ratio = 3;
-	const int kernel_size = 3; 
-
-	src = imread("image.png", IMREAD_COLOR);
-	if (src.empty()) {
-		printf("image doesn't exist\n");
-		return;
-	}
-	dst.create(src.size(), src.type());
-
-	// possible get rid of this if I just grab the grey image from the bot itself
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
-
-	blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
-
-	printf("Done detecting\n");
 }

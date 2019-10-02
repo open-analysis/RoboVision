@@ -13,9 +13,6 @@
 #include <webots/Motor.hpp>
 #include <opencv2/opencv.hpp>
 
-// toggle debugging opencv
-#define TESTOPENCV false
-
 // Macros
 #define TIME_STEP 64
 #define MAX_SPEED 6.28
@@ -24,22 +21,8 @@
 using namespace webots;
 using namespace cv;
 
-// forward declare OpenCV functions
+// forward declare OpenCV function
 void EdgeDetect();
-void EdgeDetectWithWindow();
-//static void CannyEdgeDetect(Mat &src, Mat &src_gray, Mat &dst, Mat &detected_edges, int &lowThreshold, const int &ratio, const int &kernel_size, const char* &window_name);
-static void CannyEdgeDetect(int , void*);
-
-// debug opencv global var declarations
-#if TESTOPENCV
-	Mat src, src_gray;
-	Mat dst, detected_edges;
-	int lowThreshold = 0;
-	const int max_lowThreshold = 100;
-	const int ratio = 3;
-	const int kernel_size = 3;
-	const char* window_name = "Edge Map";
-#endif
 
 // main
 int main(int argc, char **argv)
@@ -141,12 +124,9 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-// opencv debugging
-#if TESTOPENCV
-			EdgeDetectWithWindow();
-#else
+			// start detecting edges on the saved image
 			EdgeDetect();
-#endif
+
 			pastTime = clock();
 		}
 	};
@@ -159,7 +139,6 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-#if !TESTOPENCV
 /*
 	Function:	EdgeDetect
 	Parameters: None
@@ -196,50 +175,3 @@ void EdgeDetect(){
 
 	printf("Done detecting\n");
 }
-
-#else
-/*
-	Function:	EdgeDetect
-	Parameters: None
-	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image 
-	Notes:		To be used in conjunction with CannyEdgeDetect && DEBUG VERSION
-*/
-void EdgeDetectWithWindow(){
-	
-	printf("Edge Detect with Window\n");
-
-	src = imread("image.png", IMREAD_COLOR);
-	if (src.empty()) {
-		printf("image doesn't exist\n");
-		return;
-	}
-	dst.create(src.size(), src.type());
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
-	namedWindow(window_name, WINDOW_AUTOSIZE);
-	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyEdgeDetect);
-
-	CannyEdgeDetect(0, 0);
-
-	/*blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
-	imshow(window_name, dst); */
-
-}
-
-/*
-	Function:	EdgeDetect
-	Parameters: None
-	Outputs:	None
-	Purpose:	Processes the image taken by the camera to find the edges in the image
-*/
-static void CannyEdgeDetect(int, void*) {
-	blur(src_gray, detected_edges, Size(3, 3));
-	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size);
-	dst = Scalar::all(0);
-	src.copyTo(dst, detected_edges);
-	imshow(window_name, dst);
-}
-#endif

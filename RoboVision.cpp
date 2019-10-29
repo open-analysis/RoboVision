@@ -1,8 +1,10 @@
-// File:			RoboVision.cpp
-// Date:			9/10/19
-// Description:		Program will allow an e-puck robot to "see" its environment to guide itself through it (eg navigating a cave or tunnel).
-// Author:			Josh Chica
-// Modifications:	Many
+/*
+	File:				RoboVision.cpp
+	Date:				9/10/19
+	Description:		Program will allow an e-puck robot to "see" its environment to guide itself through it (eg navigating a cave or tunnel). 
+						At the moment the goal is to "see" colors.
+	Author:				Josh Chica
+*/
 
 
 #include <stdio.h>
@@ -13,6 +15,8 @@
 #include <webots/Motor.hpp>
 #include <opencv2/opencv.hpp>
 
+
+
 // Macros
 #define TIME_STEP 64
 #define MAX_SPEED 6.28
@@ -20,6 +24,10 @@
 // namespaces
 using namespace webots;
 using namespace cv;
+
+// forward declare OpenCV functions
+int ColorDetect();
+
 
 // main
 int main(int argc, char **argv)
@@ -109,21 +117,23 @@ int main(int argc, char **argv)
 		}
 
 		// actually setting the motors' velocities based on the above data
-		leftMotor->setVelocity(leftSpeed);
-		rightMotor->setVelocity(rightSpeed);
+		// set the motor speeds to leftSpeed & rightSpeed respectively when done testing
+		leftMotor->setVelocity(0);
+		rightMotor->setVelocity(0);
 
 		// determing how much time has passed & if it should process the image
 		secondsPassed = (clock() - pastTime) / CLOCKS_PER_SEC;
 		if (secondsPassed >= 3) {
-			// setting the motors' velocities to 0 & breaking out of the loop
-			leftMotor->setVelocity(0);
-			rightMotor->setVelocity(0);
-			break;
-		}
-		else {
+			if (camera->saveImage("image.png", 100) == 0);
+			else {
+				printf("couldn't save image\n");
 				continue;
+			}
+
+			ColorDetect();
+			pastTime = clock();
 		}
-	}
+	};
 
 	/* Enter your cleanup code here */
 
